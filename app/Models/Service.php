@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Module;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -21,5 +22,8 @@ class Service extends Model
     public $order;
     public $created_at;
     public $updated_at;
+    public function modules()
+    {
+        return $this->morphMany(Module::class, 'moduleable');
+    }
 }
-
