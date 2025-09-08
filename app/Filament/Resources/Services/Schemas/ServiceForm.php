@@ -8,7 +8,9 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\FileUpload;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Str;
 
 class ServiceForm
 {
@@ -18,7 +20,12 @@ class ServiceForm
             ->components([
                 // --- Service fields ---
                 TextInput::make('title')
-                    ->required(),
+                    ->required()
+                    ->reactive()
+                    ->live(onBlur:true)
+                    ->afterStateUpdated(fn (callable $set, $state) => 
+                        $set('slug', Str::slug($state))
+                    ),
 
                 TextInput::make('slug')
                     ->required(),
@@ -29,7 +36,8 @@ class ServiceForm
 
                 TextInput::make('order')
                     ->required()
-                    ->numeric(),
+                    ->numeric()
+                    ->default(1),
 
                 // --- Generic Modules (polymorphic) ---
                 Repeater::make('modules')
@@ -37,41 +45,47 @@ class ServiceForm
                     ->schema([
                         TextInput::make('name')
                             ->required(),
-
-                        TextInput::make('order')
-                            ->numeric()
-                            ->default(0),
-
-                        Select::make('type')
-                            ->options([
-                                'text' => 'Text',
-                                'image' => 'Image',
-                            ])
-                            ->required()
-                            ->reactive(), // make reactive so other fields depend on it
+                        Section::make()
+                            ->columns(2)
+                            ->schema([
+                                TextInput::make('order')
+                                    ->numeric()
+                                    ->default(1),
+                            
+                                Select::make('type')
+                                    ->options([
+                                        'text' => 'Text',
+                                        'image' => 'Image',
+                                    ])
+                                    ->required()
+                                    ->reactive(),
+                        ]),
 
                         Toggle::make('is_active')
-                            ->label('Active')
-                            ->default(true),
-
+                                ->label('Active')
+                                ->default(true),
+                        
                         // --- Conditional fields ---
+                        
                         Textarea::make('text_content')
                             ->label('Text Content')
-                            ->visible(fn(callable $get) => $get('type') === 'text'),
+                            ->visible(fn (callable $get) => $get('type') === 'text'),
 
                         FileUpload::make('image_path')
                             ->label('Upload Image')
                             ->image()
-                            ->disk('public')          // must match where it was uploaded
+                            ->disk('public')          
                             ->directory('modules/images')
                             ->visibility('public')
-                            ->downloadable()          // allows download
-                            ->openable()              // allows open in new tab
-                            ->previewable(true)       // shows thumbnail in edit view
-                            ->visible(fn(callable $get) => $get('type') === 'image'),
+                            ->downloadable()          
+                            ->openable()              
+                            ->previewable(true)       
+                            ->visible(fn (callable $get) => $get('type') === 'image'),
                     ])
-                    ->columns(2)
-                    ->createItemButtonLabel('Add Module'),
+                    ->columns(1)
+                    ->columnSpanFull()
+                    ->defaultItems(0)
+                    // ->createItemButtonLabel('Add Module'),
             ]);
     }
 }
